@@ -131,7 +131,7 @@ def convert_to_syslog(record: Dict[str, str]) -> str:
     
     # Create syslog message
     facility = "1"  # User facility
-    hostname = "igs-alarm-system"
+    hostname = socket.gethostname()  # Get actual hostname of the machine
     program = "alarms"
     
     syslog_msg = create_syslog_message(
