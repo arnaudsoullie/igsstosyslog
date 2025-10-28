@@ -52,3 +52,6 @@ desktop.ini
 .env
 .env.local
 
+# CSV files with alarm data
+*.csv
+
