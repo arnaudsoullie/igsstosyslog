@@ -4,22 +4,13 @@
     
 .DESCRIPTION
     Parses a CSV file containing alarm data and converts it to syslog format.
-    Can output to a file and optionally send to a syslog server.
+    Outputs syslog messages to a file.
     
 .PARAMETER InputFile
-    Input CSV file (required)
+    Input CSV file (required unless RunAlm is used)
     
 .PARAMETER Output
-    Output syslog file
-    
-.PARAMETER Send
-    Send to syslog server
-    
-.PARAMETER SyslogHost
-    Syslog server host (default: localhost)
-    
-.PARAMETER Port
-    Syslog server port (default: 514)
+    Output syslog file (if not specified, prints to stdout)
     
 .PARAMETER Delimiter
     CSV delimiter (default: ;)
@@ -46,12 +37,6 @@
     .\csv_to_syslog.ps1 -InputFile alarms.csv -Output output.syslog
     
 .EXAMPLE
-    .\csv_to_syslog.ps1 -InputFile alarms.csv -Send -SyslogHost 192.168.1.100 -Port 514
-    
-.EXAMPLE
-    .\csv_to_syslog.ps1 -InputFile alarms.csv -Output output.syslog -Send -SyslogHost 192.168.1.100
-    
-.EXAMPLE
     .\csv_to_syslog.ps1 -RunAlm -AlmOutputFile "c:\Users\SoMachine\Desktop\yolo.csv" -Output output.syslog
 #>
 
@@ -61,15 +46,6 @@ param(
     
     [Parameter(Mandatory=$false)]
     [string]$Output,
-    
-    [Parameter(Mandatory=$false)]
-    [switch]$Send,
-    
-    [Parameter(Mandatory=$false)]
-    [string]$SyslogHost = "localhost",
-    
-    [Parameter(Mandatory=$false)]
-    [int]$Port = 514,
     
     [Parameter(Mandatory=$false)]
     [string]$Delimiter = ";",
@@ -92,6 +68,54 @@ param(
     [Parameter(Mandatory=$false)]
     [string]$AlmTimeEnd = "$"
 )
+
+# ============================================================================
+# CONFIGURATION SECTION
+# ============================================================================
+# Set your default options here. Command-line parameters will override these values.
+# ============================================================================
+
+# Input CSV file path (leave empty to use command-line parameter or RunAlm)
+$ConfigInputFile = ""
+
+# Output syslog file path (leave empty to print to stdout)
+$ConfigOutput = ""
+
+# CSV delimiter
+$ConfigDelimiter = ";"
+
+# Run alm.exe first to generate CSV?
+$ConfigRunAlm = $false
+
+# Path to alm.exe
+$ConfigAlmExePath = "alm.exe"
+
+# Output file path for alm.exe
+$ConfigAlmOutputFile = "c:\Users\SoMachine\Desktop\yolo.csv"
+
+# Time start offset for alm.exe (e.g., "$-90" for 90 days ago)
+$ConfigAlmTimeStart = "$-90"
+
+# Time end for alm.exe (use "$" for current time)
+$ConfigAlmTimeEnd = "$"
+
+# Show verbose output?
+$ConfigShowVerbose = $false
+
+# ============================================================================
+# END CONFIGURATION SECTION
+# ============================================================================
+
+# Apply configuration: use command-line parameters if provided, otherwise use config values
+if (-not $InputFile -and $ConfigInputFile) { $InputFile = $ConfigInputFile }
+if (-not $Output -and $ConfigOutput) { $Output = $ConfigOutput }
+if (-not $Delimiter -or $Delimiter -eq ";") { if ($ConfigDelimiter) { $Delimiter = $ConfigDelimiter } }
+if (-not $RunAlm) { $RunAlm = $ConfigRunAlm }
+if (-not $AlmExePath -or $AlmExePath -eq "alm.exe") { if ($ConfigAlmExePath) { $AlmExePath = $ConfigAlmExePath } }
+if (-not $AlmOutputFile -and $ConfigAlmOutputFile) { $AlmOutputFile = $ConfigAlmOutputFile }
+if (-not $AlmTimeStart -or $AlmTimeStart -eq "$-90") { if ($ConfigAlmTimeStart) { $AlmTimeStart = $ConfigAlmTimeStart } }
+if (-not $AlmTimeEnd -or $AlmTimeEnd -eq "$") { if ($ConfigAlmTimeEnd) { $AlmTimeEnd = $ConfigAlmTimeEnd } }
+if (-not $ShowVerbose) { $ShowVerbose = $ConfigShowVerbose }
 
 function Find-FieldBySubstring {
     param(
@@ -286,26 +310,6 @@ function ConvertTo-Syslog {
     return $syslogMsg
 }
 
-function Send-SyslogMessage {
-    param(
-        [string]$Message,
-        [string]$Host,
-        [int]$Port
-    )
-    
-    try {
-        $client = New-Object System.Net.Sockets.UdpClient
-        $endpoint = New-Object System.Net.IPEndPoint([System.Net.IPAddress]::Parse($Host), $Port)
-        $bytes = [System.Text.Encoding]::UTF8.GetBytes($Message)
-        $client.Send($bytes, $bytes.Length, $endpoint) | Out-Null
-        $client.Close()
-        return $true
-    } catch {
-        Write-Error "Error sending syslog message: $_"
-        return $false
-    }
-}
-
 function Invoke-AlmExport {
     param(
         [string]$AlmExePath,
@@ -467,32 +471,8 @@ try {
             Write-Error "Error writing to file: $_"
             exit 1
         }
-    }
-    
-    # Send to syslog server
-    if ($Send) {
-        $sentCount = 0
-        $failedCount = 0
-        foreach ($msg in $syslogMessages) {
-            if (Send-SyslogMessage -Message $msg -Host $SyslogHost -Port $Port) {
-                $sentCount++
-            } else {
-                $failedCount++
-            }
-            if ($ShowVerbose) {
-                $msgPreview = if ($msg.Length -gt 80) { $msg.Substring(0, 80) + "..." } else { $msg }
-                Write-Host "Sending: $msgPreview"
-            }
-        }
-        
-        Write-Host "Sent $sentCount messages to ${SyslogHost}:$Port"
-        if ($failedCount -gt 0) {
-            Write-Host "Failed to send $failedCount messages"
-        }
-    }
-    
-    # If no output specified and not sending, print to stdout
-    if (-not $Output -and -not $Send) {
+    } else {
+        # If no output specified, print to stdout
         foreach ($msg in $syslogMessages) {
             Write-Output $msg
         }
