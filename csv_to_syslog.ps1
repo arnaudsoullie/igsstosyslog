@@ -324,7 +324,7 @@ function Invoke-AlmExport {
     }
     
     # Check if alm.exe exists
-    if (-not (Get-Command $AlmExePath -ErrorAction SilentlyContinue)) {
+    if (-not (Test-Path $AlmExePath)) {
         Write-Error "Error: alm.exe not found at '$AlmExePath'. Please check the path."
         return $false
     }
