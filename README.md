@@ -87,15 +87,25 @@ Both output to file and send to server:
 .\csv_to_syslog.ps1 -InputFile alarms.csv -Output output.syslog -Send -SyslogHost 192.168.1.100
 ```
 
+Run alm.exe first to generate CSV, then convert to syslog:
+```powershell
+.\csv_to_syslog.ps1 -RunAlm -AlmOutputFile "c:\Users\SoMachine\Desktop\yolo.csv" -Output output.syslog
+```
+
 **PowerShell Command Line Options:**
 ```
--InputFile        Input CSV file (required)
+-InputFile        Input CSV file (required unless RunAlm is used)
 -Output           Output syslog file
 -Send             Send to syslog server
 -SyslogHost       Syslog server host (default: localhost)
 -Port             Syslog server port (default: 514)
 -Delimiter        CSV delimiter (default: ;)
 -ShowVerbose      Verbose output
+-RunAlm           Run alm.exe first to generate CSV file
+-AlmExePath       Path to alm.exe (default: alm.exe)
+-AlmOutputFile    Output file path for alm.exe (required if RunAlm is specified)
+-AlmTimeStart     Time start offset for alm.exe (default: $-90 for 90 days ago)
+-AlmTimeEnd       Time end for alm.exe (default: $ for current time)
 ```
 
 ### CSV File Format
