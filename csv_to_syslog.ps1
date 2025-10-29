@@ -63,10 +63,10 @@ param(
     [string]$AlmOutputFile,
     
     [Parameter(Mandatory=$false)]
-    [string]$AlmTimeStart = "$-90",
+    [string]$AlmTimeStart = '$-90',
     
     [Parameter(Mandatory=$false)]
-    [string]$AlmTimeEnd = "$"
+    [string]$AlmTimeEnd = '$'
 )
 
 # ============================================================================
@@ -94,10 +94,10 @@ $ConfigAlmExePath = "alm.exe"
 $ConfigAlmOutputFile = "c:\Users\SoMachine\Desktop\yolo.csv"
 
 # Time start offset for alm.exe (e.g., "$-90" for 90 days ago)
-$ConfigAlmTimeStart = "$-90"
+$ConfigAlmTimeStart = '$-90'
 
 # Time end for alm.exe (use "$" for current time)
-$ConfigAlmTimeEnd = "$"
+$ConfigAlmTimeEnd = '$'
 
 # Show verbose output?
 $ConfigShowVerbose = $false
