@@ -107,15 +107,20 @@ $ConfigShowVerbose = $false
 # ============================================================================
 
 # Apply configuration: use command-line parameters if provided, otherwise use config values
-if (-not $InputFile -and $ConfigInputFile) { $InputFile = $ConfigInputFile }
-if (-not $Output -and $ConfigOutput) { $Output = $ConfigOutput }
+if (-not $InputFile -and $ConfigInputFile) { $InputFile = $ConfigInputFile.ToString().Trim() }
+if (-not $Output -and $ConfigOutput) { $Output = $ConfigOutput.ToString().Trim() }
 if ($ConfigDelimiter) { $Delimiter = $ConfigDelimiter }
 if (-not $RunAlm) { $RunAlm = $ConfigRunAlm }
 if ($ConfigAlmExePath) { $AlmExePath = $ConfigAlmExePath }
-if (-not $AlmOutputFile -and $ConfigAlmOutputFile) { $AlmOutputFile = $ConfigAlmOutputFile }
+if (-not $AlmOutputFile -and $ConfigAlmOutputFile) { $AlmOutputFile = $ConfigAlmOutputFile.ToString().Trim() }
 if ($ConfigAlmTimeStart) { $AlmTimeStart = $ConfigAlmTimeStart }
 if ($ConfigAlmTimeEnd) { $AlmTimeEnd = $ConfigAlmTimeEnd }
 if (-not $ShowVerbose) { $ShowVerbose = $ConfigShowVerbose }
+
+# Ensure string parameters are properly converted
+if ($InputFile) { $InputFile = $InputFile.ToString().Trim() }
+if ($Output) { $Output = $Output.ToString().Trim() }
+if ($AlmOutputFile) { $AlmOutputFile = $AlmOutputFile.ToString().Trim() }
 
 function Find-FieldBySubstring {
     param(
@@ -383,7 +388,7 @@ try {
         
         # Use AlmOutputFile as InputFile if InputFile wasn't specified
         if (-not $InputFile) {
-            $InputFile = $AlmOutputFile
+            $InputFile = $AlmOutputFile.ToString()
         }
         
         # Wait a moment for file to be fully written
@@ -406,7 +411,9 @@ try {
     }
     
     # Ensure InputFile path is properly handled (trim any whitespace)
-    $InputFile = $InputFile.Trim()
+    if ($InputFile) {
+        $InputFile = $InputFile.ToString().Trim()
+    }
     
     # Parse CSV file
     if ($ShowVerbose) {
