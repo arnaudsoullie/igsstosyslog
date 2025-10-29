@@ -168,11 +168,11 @@ function Create-SyslogMessage {
         [string]$Program,
         [string]$Message,
         [string]$MsgId,
-        [DateTime]$Timestamp,
+        [Nullable[DateTime]]$Timestamp,
         [string]$UniqueHash
     )
     
-    if (-not $Timestamp) {
+    if (-not $Timestamp -or $Timestamp -eq $null) {
         $Timestamp = Get-Date
     }
     
@@ -301,10 +301,15 @@ function ConvertTo-Syslog {
     $timestamp = $null
     if ($dateArrival -and $timeArrival) {
         try {
-            $timestampStr = "$dateArrival $timeArrival"
-            $timestamp = [DateTime]::ParseExact($timestampStr, "dd/MM/yyyy HH:mm:ss", [System.Globalization.CultureInfo]::InvariantCulture)
+            $dateArrivalStr = ConvertTo-String $dateArrival
+            $timeArrivalStr = ConvertTo-String $timeArrival
+            if ($dateArrivalStr -and $timeArrivalStr) {
+                $timestampStr = "$dateArrivalStr $timeArrivalStr"
+                $timestamp = [DateTime]::ParseExact($timestampStr, "dd/MM/yyyy HH:mm:ss", [System.Globalization.CultureInfo]::InvariantCulture)
+            }
         } catch {
-            # Ignore parse errors
+            # Ignore parse errors, $timestamp will remain null
+            $timestamp = $null
         }
     }
     
