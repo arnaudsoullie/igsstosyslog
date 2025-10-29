@@ -494,28 +494,39 @@ try {
         
         $values = $line -split $Delimiter
         
-        # Check if row has any non-empty values
+        # Check if row has any non-empty values (must have at least one non-whitespace value)
         $hasData = $false
+        $nonEmptyCount = 0
         foreach ($val in $values) {
             $strVal = ConvertTo-String $val
             if (-not [string]::IsNullOrWhiteSpace($strVal)) {
                 $hasData = $true
-                break
+                $nonEmptyCount++
             }
         }
         
-        if (-not $hasData) {
+        # Skip rows with no actual data (all values are empty/whitespace)
+        if (-not $hasData -or $nonEmptyCount -eq 0) {
             continue
         }
         
         # Create hashtable for record
         $record = @{}
+        $hasAnyValue = $false
         for ($j = 0; $j -lt $header.Length; $j++) {
             $key = ConvertTo-String $header[$j]
             $value = if ($j -lt $values.Length) { ConvertTo-String $values[$j] } else { "" }
             $record[$key] = $value
+            # Track if this record has at least one non-empty value
+            if (-not [string]::IsNullOrWhiteSpace($value)) {
+                $hasAnyValue = $true
+            }
         }
-        $records += $record
+        
+        # Only add record if it has at least one non-empty field value
+        if ($hasAnyValue) {
+            $records += $record
+        }
     }
     
     # Check if no records were found
