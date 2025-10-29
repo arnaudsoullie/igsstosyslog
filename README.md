@@ -4,7 +4,7 @@ A tool to convert CSV alarm files to syslog format and optionally send them to a
 
 ## Description
 
-This project provides a Python script that parses CSV files containing alarm data (from IGSS or similar systems) and converts them to standard syslog format. The tool can output syslog messages to a file or send them directly to a syslog server.
+This project provides scripts in both Python and PowerShell that parse CSV files containing alarm data (from IGSS or similar systems) and convert them to standard syslog format. The tools can output syslog messages to a file or send them directly to a syslog server.
 
 ## Features
 
@@ -13,12 +13,18 @@ This project provides a Python script that parses CSV files containing alarm dat
 - Maps alarm priorities to syslog severity levels
 - Supports both file output and network transmission
 - Preserves timestamps from the original alarm data
-- Includes structured data for better log management
+- Includes structured data with unique hash to prevent duplicates
+- Uses actual machine hostname automatically
 
 ## Requirements
 
+**Python Version:**
 - Python 3.6 or higher
 - No external dependencies (uses only Python standard library)
+
+**PowerShell Version:**
+- Windows PowerShell 5.1 or PowerShell 7+
+- No additional modules required
 
 ## Installation
 
@@ -31,28 +37,26 @@ cd igsstosyslog
 
 ## Usage
 
-### Basic Usage
+### Python Script
+
+**Basic Usage:**
 
 Convert CSV to syslog file:
-
 ```bash
 python csv_to_syslog.py -i alarms.csv -o output.syslog
 ```
 
 Send directly to syslog server:
-
 ```bash
 python csv_to_syslog.py -i alarms.csv --send --host 192.168.1.100 --port 514
 ```
 
 Both output to file and send to server:
-
 ```bash
 python csv_to_syslog.py -i alarms.csv -o output.syslog --send --host 192.168.1.100
 ```
 
-### Command Line Options
-
+**Python Command Line Options:**
 ```
 -i, --input        Input CSV file (required)
 -o, --output       Output syslog file
@@ -62,6 +66,36 @@ python csv_to_syslog.py -i alarms.csv -o output.syslog --send --host 192.168.1.1
 --delimiter       CSV delimiter (default: ;)
 -v, --verbose     Verbose output
 -h, --help        Show help message
+```
+
+### PowerShell Script
+
+**Basic Usage:**
+
+Convert CSV to syslog file:
+```powershell
+.\csv_to_syslog.ps1 -InputFile alarms.csv -Output output.syslog
+```
+
+Send directly to syslog server:
+```powershell
+.\csv_to_syslog.ps1 -InputFile alarms.csv -Send -SyslogHost 192.168.1.100 -Port 514
+```
+
+Both output to file and send to server:
+```powershell
+.\csv_to_syslog.ps1 -InputFile alarms.csv -Output output.syslog -Send -SyslogHost 192.168.1.100
+```
+
+**PowerShell Command Line Options:**
+```
+-InputFile        Input CSV file (required)
+-Output           Output syslog file
+-Send             Send to syslog server
+-SyslogHost       Syslog server host (default: localhost)
+-Port             Syslog server port (default: 514)
+-Delimiter        CSV delimiter (default: ;)
+-ShowVerbose      Verbose output
 ```
 
 ### CSV File Format
@@ -77,9 +111,11 @@ The script expects a CSV file with semicolon delimiters and columns such as:
 ## Example Output
 
 ```
-<10>1 2025-10-27T18:47:21 igs-alarm-system alarms [ID="104"] PLC not running | Objet=controller_status Zone=Global [Etat=Terminé]
-<9>1 2025-10-27T18:54:33 igs-alarm-system alarms [ID="90"] PLC progam change | Objet=System Zone=Global [Etat=Terminé]
+<9>1 2025-10-27T18:47:21 HOSTNAME alarms [ID="104" HASH="2699278932B8639B"] PLC not running | Objet=controller_status Zone=Global [Etat=Terminé]
+<12>1 2025-10-27T18:54:33 HOSTNAME alarms [ID="90" HASH="D83AA6E44576641B"] PLC progam change | Objet=System Zone=Global [Etat=Terminé]
 ```
+
+Note: HOSTNAME will be replaced with the actual hostname of the machine running the script. The HASH field contains a unique identifier based on alarm name, date, and time to help prevent duplicate entries.
 
 ## Syslog Severity Mapping
 
