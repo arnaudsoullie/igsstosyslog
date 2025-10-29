@@ -445,9 +445,20 @@ try {
     $records = @()
     $content = Get-Content $InputFile -Encoding UTF8
     
-    if ($content.Length -lt 2) {
-        Write-Error "CSV file must have at least a header row and one data row"
-        exit 1
+    # Check if file is empty or has no content
+    if ($null -eq $content -or $content.Length -eq 0) {
+        if ($ShowVerbose) {
+            Write-Host "CSV file is empty. Nothing to process."
+        }
+        exit 0
+    }
+    
+    # Check if file has at least a header row
+    if ($content.Length -lt 1) {
+        if ($ShowVerbose) {
+            Write-Host "CSV file has no header row. Nothing to process."
+        }
+        exit 0
     }
     
     # Parse header
@@ -483,6 +494,14 @@ try {
             $record[$key] = $value
         }
         $records += $record
+    }
+    
+    # Check if no records were found
+    if ($records.Count -eq 0) {
+        if ($ShowVerbose) {
+            Write-Host "CSV file contains no data records. Nothing to process."
+        }
+        exit 0
     }
     
     if ($ShowVerbose) {
