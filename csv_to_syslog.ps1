@@ -57,7 +57,7 @@ param(
     [switch]$RunAlm,
     
     [Parameter(Mandatory=$false)]
-    [string]$AlmExePath = "alm.exe",
+    [string]$AlmExePath = "C:\Program Files (x86)\Schneider Electric\IGSS32\V14.0\GSS\alm.exe",
     
     [Parameter(Mandatory=$false)]
     [string]$AlmOutputFile,
@@ -88,7 +88,7 @@ $ConfigDelimiter = ";"
 $ConfigRunAlm = $false
 
 # Path to alm.exe
-$ConfigAlmExePath = "alm.exe"
+$ConfigAlmExePath = "C:\Program Files (x86)\Schneider Electric\IGSS32\V14.0\GSS\alm.exe"
 
 # Output file path for alm.exe
 $ConfigAlmOutputFile = "c:\Users\SoMachine\Desktop\yolo.csv"
