@@ -146,12 +146,14 @@ function Find-FieldBySubstring {
         [string]$Substring
     )
     
-    $substringLower = $Substring.ToLower()
+    $substringLower = ConvertTo-String $Substring
+    $substringLower = $substringLower.ToLower()
     foreach ($key in $Record.Keys) {
-        if ($key.ToLower().Contains($substringLower)) {
+        $keyStr = ConvertTo-String $key
+        if ($keyStr.ToLower().Contains($substringLower)) {
             $value = $Record[$key]
             if ($value) {
-                return $value.ToString().Trim()
+                return ConvertTo-String $value
             }
         }
     }
@@ -410,15 +412,28 @@ try {
         }
         
         # Wait a moment for file to be fully written
-        Start-Sleep -Seconds 1
+        Start-Sleep -Seconds 2
         
-        # Verify the file was created
+        # Verify the file was created and has content
+        $InputFile = ConvertTo-String $InputFile
         if ($ShowVerbose) {
             Write-Host "Checking if CSV file was created: $InputFile"
         }
+        
         if (-not (Test-Path $InputFile)) {
-            Write-Error "Error: CSV file was not created at '$InputFile'. Please check alm.exe output."
-            exit 1
+            if ($ShowVerbose) {
+                Write-Host "CSV file was not created by alm.exe. Nothing to process."
+            }
+            exit 0
+        }
+        
+        # Check if file is empty (alm.exe might create an empty file)
+        $fileInfo = Get-Item $InputFile
+        if ($fileInfo.Length -eq 0) {
+            if ($ShowVerbose) {
+                Write-Host "CSV file is empty. Nothing to process."
+            }
+            exit 0
         }
     }
     
@@ -466,7 +481,8 @@ try {
     
     # Parse data rows
     for ($i = 1; $i -lt $content.Length; $i++) {
-        $line = $content[$i].Trim()
+        # Safely convert line to string before trimming
+        $line = ConvertTo-String $content[$i]
         if ([string]::IsNullOrWhiteSpace($line)) {
             continue
         }
@@ -476,7 +492,8 @@ try {
         # Check if row has any non-empty values
         $hasData = $false
         foreach ($val in $values) {
-            if ($val.Trim()) {
+            $strVal = ConvertTo-String $val
+            if (-not [string]::IsNullOrWhiteSpace($strVal)) {
                 $hasData = $true
                 break
             }
@@ -489,8 +506,8 @@ try {
         # Create hashtable for record
         $record = @{}
         for ($j = 0; $j -lt $header.Length; $j++) {
-            $key = $header[$j].Trim()
-            $value = if ($j -lt $values.Length) { $values[$j] } else { "" }
+            $key = ConvertTo-String $header[$j]
+            $value = if ($j -lt $values.Length) { ConvertTo-String $values[$j] } else { "" }
             $record[$key] = $value
         }
         $records += $record
