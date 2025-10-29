@@ -494,45 +494,67 @@ try {
             continue
         }
         
-        # Check if line consists only of delimiters and whitespace (like ";;;" or " ; ; ; ")
-        $lineWithoutDelimiters = $line -replace [regex]::Escape($Delimiter), ""
-        if ([string]::IsNullOrWhiteSpace($lineWithoutDelimiters)) {
+        # Trim the line and check if it's empty after trimming
+        $lineTrimmed = $line.Trim()
+        if ([string]::IsNullOrEmpty($lineTrimmed)) {
             continue
         }
         
-        $values = $line -split $Delimiter
+        # Check if line consists only of delimiters and whitespace (like ";;;" or " ; ; ; ")
+        $lineWithoutDelimiters = $lineTrimmed -replace [regex]::Escape($Delimiter), "" -replace '\s', ""
+        if ([string]::IsNullOrEmpty($lineWithoutDelimiters)) {
+            continue
+        }
         
-        # Check if row has any non-empty values (must have at least one non-whitespace value)
-        $hasData = $false
-        $nonEmptyValues = @()
+        $values = $lineTrimmed -split [regex]::Escape($Delimiter)
+        
+        # First check: verify we have at least one non-empty value before creating record
+        $hasNonEmptyValue = $false
         foreach ($val in $values) {
             $strVal = ConvertTo-String $val
             if (-not [string]::IsNullOrWhiteSpace($strVal)) {
-                $hasData = $true
-                $nonEmptyValues += $strVal
+                $hasNonEmptyValue = $true
+                break
             }
         }
         
         # Skip rows with no actual data (all values are empty/whitespace)
-        if (-not $hasData -or $nonEmptyValues.Count -eq 0) {
+        if (-not $hasNonEmptyValue) {
             continue
         }
         
         # Create hashtable for record
         $record = @{}
-        $hasAnyValue = $false
+        $recordHasValue = $false
+        $meaningfulFieldCount = 0
         for ($j = 0; $j -lt $header.Length; $j++) {
             $key = ConvertTo-String $header[$j]
             $value = if ($j -lt $values.Length) { ConvertTo-String $values[$j] } else { "" }
             $record[$key] = $value
-            # Track if this record has at least one non-empty value
-            if (-not [string]::IsNullOrWhiteSpace($value)) {
-                $hasAnyValue = $true
+            # Track if this record has at least one non-empty, meaningful value
+            if (-not [string]::IsNullOrWhiteSpace($value) -and $value.Length -gt 0) {
+                $recordHasValue = $true
+                $meaningfulFieldCount++
             }
         }
         
-        # Only add record if it has at least one non-empty field value
-        if (-not $hasAnyValue) {
+        # Final check: Only add record if it has at least 2 meaningful field values
+        # (to avoid records with just one accidental character or space)
+        if (-not $recordHasValue -or $meaningfulFieldCount -lt 2) {
+            continue
+        }
+        
+        # Additional validation: Check if key alarm fields have meaningful data
+        $hasAlarmData = $false
+        $alarmText = Find-FieldBySubstring -Record $record -Substring "Texte d'alarme"
+        $alarmNum = Find-FieldBySubstring -Record $record -Substring "d'alarme"
+        
+        if ((-not [string]::IsNullOrWhiteSpace($alarmText)) -or (-not [string]::IsNullOrWhiteSpace($alarmNum))) {
+            $hasAlarmData = $true
+        }
+        
+        # Only add record if it has meaningful alarm data
+        if (-not $hasAlarmData) {
             continue
         }
         
@@ -578,4 +600,5 @@ try {
     Write-Error "Error: $_"
     exit 1
 }
+
 
