@@ -42,9 +42,11 @@
 
 param(
     [Parameter(Mandatory=$false)]
+    [AllowEmptyString()]
     [string]$InputFile,
     
     [Parameter(Mandatory=$false)]
+    [AllowEmptyString()]
     [string]$Output,
     
     [Parameter(Mandatory=$false)]
@@ -60,6 +62,7 @@ param(
     [string]$AlmExePath = "C:\Program Files (x86)\Schneider Electric\IGSS32\V14.0\GSS\alm.exe",
     
     [Parameter(Mandatory=$false)]
+    [AllowEmptyString()]
     [string]$AlmOutputFile,
     
     [Parameter(Mandatory=$false)]
@@ -68,6 +71,11 @@ param(
     [Parameter(Mandatory=$false)]
     [string]$AlmTimeEnd = '$'
 )
+
+# Force immediate conversion of string parameters to avoid Char type issues
+$InputFile = if ($InputFile) { [string]$InputFile } else { "" }
+$Output = if ($Output) { [string]$Output } else { "" }
+$AlmOutputFile = if ($AlmOutputFile) { [string]$AlmOutputFile } else { "" }
 
 # ============================================================================
 # CONFIGURATION SECTION
@@ -106,12 +114,14 @@ $ConfigShowVerbose = $false
 # END CONFIGURATION SECTION
 # ============================================================================
 
-# Helper function to safely convert to string
+# Helper function to safely convert to string (handles Char, null, and other types)
 function ConvertTo-String {
     param([object]$Value)
     if ($null -eq $Value) { return "" }
-    if ($Value -is [string]) { return $Value.Trim() }
-    return [string]$Value
+    # Convert to string first, then trim (handles Char, string, and all other types)
+    $strValue = [string]$Value
+    if ([string]::IsNullOrWhiteSpace($strValue)) { return "" }
+    return $strValue.Trim()
 }
 
 # Apply configuration: use command-line parameters if provided, otherwise use config values
