@@ -488,7 +488,15 @@ try {
     for ($i = 1; $i -lt $content.Length; $i++) {
         # Safely convert line to string before trimming
         $line = ConvertTo-String $content[$i]
+        
+        # Skip completely empty or whitespace-only lines
         if ([string]::IsNullOrWhiteSpace($line)) {
+            continue
+        }
+        
+        # Check if line consists only of delimiters and whitespace (like ";;;" or " ; ; ; ")
+        $lineWithoutDelimiters = $line -replace [regex]::Escape($Delimiter), ""
+        if ([string]::IsNullOrWhiteSpace($lineWithoutDelimiters)) {
             continue
         }
         
@@ -496,17 +504,17 @@ try {
         
         # Check if row has any non-empty values (must have at least one non-whitespace value)
         $hasData = $false
-        $nonEmptyCount = 0
+        $nonEmptyValues = @()
         foreach ($val in $values) {
             $strVal = ConvertTo-String $val
             if (-not [string]::IsNullOrWhiteSpace($strVal)) {
                 $hasData = $true
-                $nonEmptyCount++
+                $nonEmptyValues += $strVal
             }
         }
         
         # Skip rows with no actual data (all values are empty/whitespace)
-        if (-not $hasData -or $nonEmptyCount -eq 0) {
+        if (-not $hasData -or $nonEmptyValues.Count -eq 0) {
             continue
         }
         
@@ -524,9 +532,11 @@ try {
         }
         
         # Only add record if it has at least one non-empty field value
-        if ($hasAnyValue) {
-            $records += $record
+        if (-not $hasAnyValue) {
+            continue
         }
+        
+        $records += $record
     }
     
     # Check if no records were found
