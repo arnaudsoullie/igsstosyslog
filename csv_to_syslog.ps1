@@ -24,8 +24,23 @@
 .PARAMETER Delimiter
     CSV delimiter (default: ;)
     
-.PARAMETER Verbose
+.PARAMETER ShowVerbose
     Verbose output
+    
+.PARAMETER RunAlm
+    Run alm.exe first to generate CSV file
+    
+.PARAMETER AlmExePath
+    Path to alm.exe (default: alm.exe, assumes it's in PATH)
+    
+.PARAMETER AlmOutputFile
+    Output file path for alm.exe (required if RunAlm is specified)
+    
+.PARAMETER AlmTimeStart
+    Time start offset for alm.exe (default: $-90 for 90 days ago)
+    
+.PARAMETER AlmTimeEnd
+    Time end for alm.exe (default: $ for current time)
     
 .EXAMPLE
     .\csv_to_syslog.ps1 -InputFile alarms.csv -Output output.syslog
@@ -35,10 +50,13 @@
     
 .EXAMPLE
     .\csv_to_syslog.ps1 -InputFile alarms.csv -Output output.syslog -Send -SyslogHost 192.168.1.100
+    
+.EXAMPLE
+    .\csv_to_syslog.ps1 -RunAlm -AlmOutputFile "c:\Users\SoMachine\Desktop\yolo.csv" -Output output.syslog
 #>
 
 param(
-    [Parameter(Mandatory=$true)]
+    [Parameter(Mandatory=$false)]
     [string]$InputFile,
     
     [Parameter(Mandatory=$false)]
@@ -57,7 +75,22 @@ param(
     [string]$Delimiter = ";",
     
     [Parameter(Mandatory=$false)]
-    [switch]$ShowVerbose
+    [switch]$ShowVerbose,
+    
+    [Parameter(Mandatory=$false)]
+    [switch]$RunAlm,
+    
+    [Parameter(Mandatory=$false)]
+    [string]$AlmExePath = "alm.exe",
+    
+    [Parameter(Mandatory=$false)]
+    [string]$AlmOutputFile,
+    
+    [Parameter(Mandatory=$false)]
+    [string]$AlmTimeStart = "$-90",
+    
+    [Parameter(Mandatory=$false)]
+    [string]$AlmTimeEnd = "$"
 )
 
 function Find-FieldBySubstring {
@@ -273,8 +306,93 @@ function Send-SyslogMessage {
     }
 }
 
+function Invoke-AlmExport {
+    param(
+        [string]$AlmExePath,
+        [string]$OutputFile,
+        [string]$TimeStart,
+        [string]$TimeEnd
+    )
+    
+    if (-not $OutputFile) {
+        Write-Error "AlmOutputFile is required when RunAlm is specified."
+        return $false
+    }
+    
+    # Check if alm.exe exists
+    if (-not (Get-Command $AlmExePath -ErrorAction SilentlyContinue)) {
+        Write-Error "Error: alm.exe not found at '$AlmExePath'. Please check the path."
+        return $false
+    }
+    
+    try {
+        # Build the command arguments
+        # Note: The original format is -file"path" without space between -file and the quoted path
+        $arguments = @(
+            "-csv",
+            "-ftest",
+            "-file`"$OutputFile`"",
+            "-ts$TimeStart",
+            "-te$TimeEnd",
+            "-all"
+        )
+        
+        # Alternative: If the exe needs it as a single token, use this format:
+        # $fileArg = "-file`"$OutputFile`""
+        # $arguments = "-csv", "-ftest", $fileArg, "-ts$TimeStart", "-te$TimeEnd", "-all"
+        
+        if ($ShowVerbose) {
+            Write-Host "Running alm.exe to export CSV..."
+            Write-Host "Command: $AlmExePath $($arguments -join ' ')"
+        }
+        
+        # Execute alm.exe
+        $process = Start-Process -FilePath $AlmExePath -ArgumentList $arguments -Wait -PassThru -NoNewWindow
+        
+        if ($process.ExitCode -eq 0) {
+            if ($ShowVerbose) {
+                Write-Host "alm.exe completed successfully. Output file: $OutputFile"
+            }
+            return $true
+        } else {
+            Write-Error "alm.exe exited with code $($process.ExitCode)"
+            return $false
+        }
+    } catch {
+        Write-Error "Error running alm.exe: $_"
+        return $false
+    }
+}
+
 # Main script
 try {
+    # Run alm.exe first if requested
+    if ($RunAlm) {
+        if (-not $AlmOutputFile) {
+            Write-Error "Error: AlmOutputFile is required when RunAlm is specified."
+            exit 1
+        }
+        
+        if (-not (Invoke-AlmExport -AlmExePath $AlmExePath -OutputFile $AlmOutputFile -TimeStart $AlmTimeStart -TimeEnd $AlmTimeEnd)) {
+            Write-Error "Error: Failed to run alm.exe. Exiting."
+            exit 1
+        }
+        
+        # Use AlmOutputFile as InputFile if InputFile wasn't specified
+        if (-not $InputFile) {
+            $InputFile = $AlmOutputFile
+        }
+        
+        # Wait a moment for file to be fully written
+        Start-Sleep -Seconds 1
+    }
+    
+    # Validate InputFile is provided
+    if (-not $InputFile) {
+        Write-Error "Error: InputFile is required (or use RunAlm with AlmOutputFile)."
+        exit 1
+    }
+    
     # Parse CSV file
     if ($ShowVerbose) {
         Write-Host "Parsing CSV file: $InputFile"
