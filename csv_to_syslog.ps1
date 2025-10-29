@@ -109,12 +109,12 @@ $ConfigShowVerbose = $false
 # Apply configuration: use command-line parameters if provided, otherwise use config values
 if (-not $InputFile -and $ConfigInputFile) { $InputFile = $ConfigInputFile }
 if (-not $Output -and $ConfigOutput) { $Output = $ConfigOutput }
-if (-not $Delimiter -or $Delimiter -eq ";") { if ($ConfigDelimiter) { $Delimiter = $ConfigDelimiter } }
+if ($ConfigDelimiter) { $Delimiter = $ConfigDelimiter }
 if (-not $RunAlm) { $RunAlm = $ConfigRunAlm }
-if (-not $AlmExePath -or $AlmExePath -eq "alm.exe") { if ($ConfigAlmExePath) { $AlmExePath = $ConfigAlmExePath } }
+if ($ConfigAlmExePath) { $AlmExePath = $ConfigAlmExePath }
 if (-not $AlmOutputFile -and $ConfigAlmOutputFile) { $AlmOutputFile = $ConfigAlmOutputFile }
-if (-not $AlmTimeStart -or $AlmTimeStart -eq "$-90") { if ($ConfigAlmTimeStart) { $AlmTimeStart = $ConfigAlmTimeStart } }
-if (-not $AlmTimeEnd -or $AlmTimeEnd -eq "$") { if ($ConfigAlmTimeEnd) { $AlmTimeEnd = $ConfigAlmTimeEnd } }
+if ($ConfigAlmTimeStart) { $AlmTimeStart = $ConfigAlmTimeStart }
+if ($ConfigAlmTimeEnd) { $AlmTimeEnd = $ConfigAlmTimeEnd }
 if (-not $ShowVerbose) { $ShowVerbose = $ConfigShowVerbose }
 
 function Find-FieldBySubstring {
