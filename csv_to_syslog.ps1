@@ -106,21 +106,29 @@ $ConfigShowVerbose = $false
 # END CONFIGURATION SECTION
 # ============================================================================
 
+# Helper function to safely convert to string
+function ConvertTo-String {
+    param([object]$Value)
+    if ($null -eq $Value) { return "" }
+    if ($Value -is [string]) { return $Value.Trim() }
+    return [string]$Value
+}
+
 # Apply configuration: use command-line parameters if provided, otherwise use config values
-if (-not $InputFile -and $ConfigInputFile) { $InputFile = $ConfigInputFile.ToString().Trim() }
-if (-not $Output -and $ConfigOutput) { $Output = $ConfigOutput.ToString().Trim() }
-if ($ConfigDelimiter) { $Delimiter = $ConfigDelimiter }
+if (-not $InputFile -and $ConfigInputFile) { $InputFile = ConvertTo-String $ConfigInputFile }
+if (-not $Output -and $ConfigOutput) { $Output = ConvertTo-String $ConfigOutput }
+if ($ConfigDelimiter) { $Delimiter = ConvertTo-String $ConfigDelimiter }
 if (-not $RunAlm) { $RunAlm = $ConfigRunAlm }
-if ($ConfigAlmExePath) { $AlmExePath = $ConfigAlmExePath }
-if (-not $AlmOutputFile -and $ConfigAlmOutputFile) { $AlmOutputFile = $ConfigAlmOutputFile.ToString().Trim() }
-if ($ConfigAlmTimeStart) { $AlmTimeStart = $ConfigAlmTimeStart }
-if ($ConfigAlmTimeEnd) { $AlmTimeEnd = $ConfigAlmTimeEnd }
+if ($ConfigAlmExePath) { $AlmExePath = ConvertTo-String $ConfigAlmExePath }
+if (-not $AlmOutputFile -and $ConfigAlmOutputFile) { $AlmOutputFile = ConvertTo-String $ConfigAlmOutputFile }
+if ($ConfigAlmTimeStart) { $AlmTimeStart = ConvertTo-String $ConfigAlmTimeStart }
+if ($ConfigAlmTimeEnd) { $AlmTimeEnd = ConvertTo-String $ConfigAlmTimeEnd }
 if (-not $ShowVerbose) { $ShowVerbose = $ConfigShowVerbose }
 
-# Ensure string parameters are properly converted
-if ($InputFile) { $InputFile = $InputFile.ToString().Trim() }
-if ($Output) { $Output = $Output.ToString().Trim() }
-if ($AlmOutputFile) { $AlmOutputFile = $AlmOutputFile.ToString().Trim() }
+# Ensure string parameters are properly converted (handle case where parameter is Char type)
+$InputFile = ConvertTo-String $InputFile
+$Output = ConvertTo-String $Output
+$AlmOutputFile = ConvertTo-String $AlmOutputFile
 
 function Find-FieldBySubstring {
     param(
@@ -388,7 +396,7 @@ try {
         
         # Use AlmOutputFile as InputFile if InputFile wasn't specified
         if (-not $InputFile) {
-            $InputFile = $AlmOutputFile.ToString()
+            $InputFile = ConvertTo-String $AlmOutputFile
         }
         
         # Wait a moment for file to be fully written
@@ -411,9 +419,7 @@ try {
     }
     
     # Ensure InputFile path is properly handled (trim any whitespace)
-    if ($InputFile) {
-        $InputFile = $InputFile.ToString().Trim()
-    }
+    $InputFile = ConvertTo-String $InputFile
     
     # Parse CSV file
     if ($ShowVerbose) {
