@@ -332,25 +332,24 @@ function Invoke-AlmExport {
     try {
         # Build the command arguments
         # Note: The original format is -file"path" without space between -file and the quoted path
+        # Use escaped quotes to ensure paths with spaces are handled correctly
+        $fileArg = "-file`"$OutputFile`""
         $arguments = @(
             "-csv",
             "-ftest",
-            "-file`"$OutputFile`"",
+            $fileArg,
             "-ts$TimeStart",
             "-te$TimeEnd",
             "-all"
         )
         
-        # Alternative: If the exe needs it as a single token, use this format:
-        # $fileArg = "-file`"$OutputFile`""
-        # $arguments = "-csv", "-ftest", $fileArg, "-ts$TimeStart", "-te$TimeEnd", "-all"
-        
         if ($ShowVerbose) {
             Write-Host "Running alm.exe to export CSV..."
-            Write-Host "Command: $AlmExePath $($arguments -join ' ')"
+            Write-Host "Command: `"$AlmExePath`" $($arguments -join ' ')"
+            Write-Host "Output file: $OutputFile"
         }
         
-        # Execute alm.exe
+        # Execute alm.exe - FilePath parameter handles paths with spaces automatically
         $process = Start-Process -FilePath $AlmExePath -ArgumentList $arguments -Wait -PassThru -NoNewWindow
         
         if ($process.ExitCode -eq 0) {
@@ -389,6 +388,15 @@ try {
         
         # Wait a moment for file to be fully written
         Start-Sleep -Seconds 1
+        
+        # Verify the file was created
+        if ($ShowVerbose) {
+            Write-Host "Checking if CSV file was created: $InputFile"
+        }
+        if (-not (Test-Path $InputFile)) {
+            Write-Error "Error: CSV file was not created at '$InputFile'. Please check alm.exe output."
+            exit 1
+        }
     }
     
     # Validate InputFile is provided
@@ -396,6 +404,9 @@ try {
         Write-Error "Error: InputFile is required (or use RunAlm with AlmOutputFile)."
         exit 1
     }
+    
+    # Ensure InputFile path is properly handled (trim any whitespace)
+    $InputFile = $InputFile.Trim()
     
     # Parse CSV file
     if ($ShowVerbose) {
